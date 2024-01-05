@@ -1,0 +1,17 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${olsTRACE}" == "yes" ]; then
+  set -x
+fi
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+X=$(getinput)
+y="$*"
+Xt=`etranspose "$X"`
+echoe "$Xt" | mult $(earg "$X") | invert | mult $(earg "$Xt") | mult $y

@@ -1,0 +1,31 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${multTRACE}" == "yes" ]; then
+  set -x
+fi
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+m1=$(getinput)
+m2=`echoe "$*" | tr ',' '\n'`
+c1=`echoe "$m2" | head -n 1`
+nrows=`echoe "$m1" | wc -l`
+ncols=`echoe "$c1" | tr ' ' '\n' | wc -l`
+for r in `seq 1 $nrows`; do
+  VALS=""
+  SEP=""
+  for c in `seq 1 $ncols`; do
+    m1row=`echoe "$m1" | sed -n $r','$r'p'`
+    m2col=`echoe "$m2" | awk '{print $'$c'}' | tr '\n' ' '`
+    VAL=`echoe "$m1row\n$m2col" | dot` 
+    VALS="$VALS$SEP$VAL"
+    SEP=" "
+  done
+  echoe "$VALS"
+done
+

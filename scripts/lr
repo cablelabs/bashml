@@ -1,0 +1,90 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${lrTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+X=$(getinput)
+y=`echoe "$*" | tr ',' '\n'`
+c1=`echoe "$X" | head -n 1`
+nrows=`echoe "$X" | wc -l | sed 's/ //g'`
+ncols=`echoe "$c1" | tr ' ' '\n' | wc -l | sed 's/ //g'`
+
+function sigmoid {
+   #Overflow/underflow protection
+   UNDERFLOW=`echo "scale=${BC_PRECISION};$1 < (-10)" | bcg` 
+   OVERFLOW=`echo "scale=${BC_PRECISION};$1 > (5000)" | bcg` 
+   if [ ${UNDERFLOW}  -eq 1 ]; then
+     echo 0
+   elif [ ${OVERFLOW}  -eq 1 ]; then
+     echo 1
+   else
+     echo "scale=${BC_PRECISION};1/(1+e((0-1)*($1)))" | bcg -l
+   fi
+}
+
+function debug {
+  if [ "${lrDEBUG}" == "yes" ]; then
+    echo "$(date) $*" >&2
+  fi
+}
+
+if [ "${PREDICT}" != "yes" ]; then 
+  ITERATIONS=${ITERATIONS:-100}
+  LEARNING_RATE=${LEARNING_RATE:-"0.01"}
+  THETA=`printf '%'$ncols's' | sed 's/ /0 /g' | sed 's/ $//'`
+  for iter in `seq 1 $ITERATIONS`; do
+    debug "ITERATION $iter - ${THETA}"
+    h=""
+    sep=""
+    debug "ROWS $nrows"
+    for i in `seq 1 $nrows`; do
+      x=`echoe "$X" | sed -n $i'p'`
+      debug "ROW $i - x ${x}"
+      z=`echoe "${x}\n${THETA}" | dot`
+      debug "ROW $i - z ${z}"
+      yval=`echo $y | awk '{print $'$i'}'`
+      debug "ROW $i - yval ${yval}"
+      sigz=$(sigmoid $z)
+      debug "ROW $i - sigz ${sigz}"
+      hval=`echo "scale=${BC_PRECISION};$sigz-$yval" | bcg -l`
+      h="${h}${sep}${hval}"
+      sep=" "
+      debug "ROW $i - h ${h}"
+    done
+    newtheta=""
+    sep=""
+    debug "COLS $ncols"
+    for i in `seq 1 $ncols`; do
+      xt=`echoe "$X" | awk '{print $'$i'}' | tr '\n' ' ' | sed 's/ $//'`
+      g=`echoe "${xt}\n${h}" | dot`
+      t=`echo $THETA | awk '{print $'$i'}'`
+      newt=`echo "scale=${BC_PRECISION};$t-(${LEARNING_RATE}*($g))/$nrows" | bcg -l`
+      newtheta="${newtheta}${sep}${newt}"
+      sep=" "
+      debug "COL $i - theta ${newtheta}"
+    done
+    THETA="${newtheta}"
+  done
+  echoe "$THETA"
+else
+  preds=""
+  sep=""
+  for i in `seq 1 $nrows`; do
+    x=`echoe "$X" | sed -n $i'p'`
+    m=`echoe "${x}\n${y}" | dot`
+    debug "m - $m"
+    sig=$(sigmoid "$m")
+    preds="${preds}${sep}${sig}"
+    sep=" "
+  done
+  echoe "${preds}"
+fi

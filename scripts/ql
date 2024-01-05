@@ -1,0 +1,92 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${qlTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+
+function getcell {
+  row=$1
+  col=$2
+  r=`echoe "$qtable" | sed -n ${row}','${row}'p'`
+  echo $r | awk '{print $'$col'}'
+}
+
+function setcell {
+  row=$1
+  col=$2
+  val=$3
+  r=`echoe "$qtable" | sed -n ${row}','${row}'p'`
+  newrow=`echo $r | awk '{$'$col'="'$val'";print}'`
+  is=1
+  for is in `seq 1 $n`; do
+    r=`echoe "$qtable" | sed -n ${is}','${is}'p'`
+    if [ $is -eq $row ]; then
+      echoe "$newrow"
+    else
+      echoe "$r"
+    fi
+  done
+}
+
+function get_best_action {
+  s=$1
+  action_rewards=$(echoe "$qtable" | awk '{print $'$s'}' | tr '\n' ' ')
+  index=1
+  best_index=1
+  best_reward=$(echoe "$action_rewards" | awk '{print $1}')
+  for ar in $action_rewards; do
+    greater=$(echo "scale=${BC_PRECISION};${ar}>${best_reward}" | bcg)
+    if [ $greater -eq 1 ]; then
+      best_index=$index
+      best_reward=$ar
+    fi
+    index=`expr $index + 1`
+  done
+  echo $best_index     
+}
+
+args=$#
+if [ $args -eq 2 ]; then
+  #initiate new qtable
+  states=$1
+  actions=$2
+  for i in `seq $states`;do 
+   printf '%*s\n' $actions | tr ' ' '0' | sed 's/0/0 /g' | sed 's/ $//'
+  done
+  exit 0
+fi
+qtable=$(getinput)
+states=`echoe "$qtable" | wc -l | sed 's/ //g'`
+actions=`echoe "$qtable" | head -n 1 | tr ' ' '\n' |  wc -l | sed 's/ //g'`
+n=$actions
+if [ $args -eq 6 ]; then
+  #train qtable
+  action=$1
+  state=$2
+  reward=$3
+  next_state=$4
+  alpha=$5
+  gamma=$6
+  q_sa=$(getcell $action $state)
+  best_action=$(get_best_action $next_state)
+  target=$(getcell $best_action $next_state)
+  new_q_sa=$(echo "scale=${BC_PRECISION};${q_sa}+${alpha}*(${reward}+${gamma}*${target}-${q_sa})" | bcg)
+  qtable=$(setcell $action $state $new_q_sa)
+  echoe "$qtable"
+  exit 0
+fi
+if [ $args -eq 1 ]; then
+  #predict with qtable
+  state=$1
+  best_action=$(get_best_action $state)
+  echo $best_action
+fi

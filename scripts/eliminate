@@ -1,0 +1,26 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${eliminateTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+read row1 
+read row2
+col=$1
+target=$2
+r2col=`echo $row2 | awk '{print $'$col'}'`
+r1col=`echo $row1 | awk '{print $'$col'}'`
+fac=`echo "scale=${BC_PRECISION};(${r2col}-${target})/(${r1col})" | bcg`
+len=`echo $row2 | tr ' ' '\n' | wc -l`
+OUT=""
+SEP=""
+for i in `seq 1 $len`; do
+  r1i=`echo $row1 | awk '{print $'$i'}'`
+  r2i=`echo $row2 | awk '{print $'$i'}'`
+  val=`echo "scale=${BC_PRECISION};${r2i}-((${fac})*(${r1i}))" | bcg`
+  OUT="$OUT$SEP$val"
+  SEP=" "
+done
+echo "$OUT"

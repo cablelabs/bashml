@@ -1,0 +1,12 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${shufgTRACE}" == "yes" ]; then
+  set -x
+fi
+if [ "${DETERMINISTIC}" == "yes" ]; then 
+  awk '{print $0}';
+else
+  awk 'BEGIN {srand(); OFMT="%.17f"} {print rand(), $0}' "$@" | sort -k1,1n | cut -d ' ' -f2-;
+fi

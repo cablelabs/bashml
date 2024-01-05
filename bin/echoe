@@ -1,0 +1,3 @@
+#! /bin/bash
+printf -- >/dev/null 2>/dev/null || NEG_ESCAPE="--"
+printf ${NEG_ESCAPE} "$*\n"

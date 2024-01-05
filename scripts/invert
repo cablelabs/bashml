@@ -1,0 +1,123 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${invertTRACE}" == "yes" ]; then
+  set -x
+fi
+function debug {
+  if [ "${DEBUG}" == "true" ]; then
+    echo "$*" >&2
+  fi
+}
+
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+rows=$(getinput)
+rows=`echoe "$rows" | identity`
+n=`echoe "$rows" | wc -l`
+n1=`expr $n + 1`
+
+function getarr {
+  row=$1
+  col=$2
+  r=`echoe "$rows" | sed -n ${row}','${row}'p'`
+  echo $r | awk '{print $'$col'}'
+}
+
+function setarr {
+  row=$1
+  col=$2
+  val=$3
+  r=`echoe "$rows" | sed -n ${row}','${row}'p'`
+  newrow=`echo $r | awk '{$'$col'="'$val'";print}'`
+  for is in `seq 1 $n`; do
+    r=`echoe "$rows" | sed -n ${is}','${is}'p'`
+    if [ $is -eq $row ]; then
+      echoe "$newrow"
+    else
+      echoe "$r"
+    fi
+  done
+}
+
+function switchrows {
+  isr=$1
+  jsr=$2
+  isr=`echoe "$rows" | sed -n ${isr}','${isr}'p'`
+  jsr=`echoe "$rows" | sed -n ${jsr}','${jsr}'p'`
+  for r in `seq 1 $n`; do
+    if [ $r -eq $isr ]; then
+      echoe "$jsr"
+    elif [ $r -eq $jsr ]; then
+      echoe "$isr"
+    else
+     rr=`echoe "$rows" | sed -n ${r}','${r}'p'`
+     echoe "$rr"
+    fi
+  done
+}
+
+function updaterow {
+  ju=$1
+  shift
+  row="$*"
+  for r in `seq 1 $n`; do
+    if [ $r -eq $ju ]; then
+      echoe "$row"
+    else
+     rr=`echoe "$rows" | sed -n ${r}','${r}'p'`
+     echoe "$rr"
+    fi
+  done
+}
+
+for i in `seq 1 $n`; do
+  ii=$(getarr $i $i)
+  ii=`echo "scale=0;${ii}*1000/1" | bcg`
+  i1=`expr $i + 1`
+  if [ $ii -eq 0 ]; then
+    for j in `seq $i1 $n`; do
+      ij=$(getarr $i $j)
+      if [ $ij -ne 0 ]; then
+        rows=$(switchrows $i $j)
+      fi
+    done
+  fi
+  ir=`echoe "$rows" | sed -n ${i}','${i}'p'`
+  if [ $i1 -lt $n1 ]; then
+    for j in `seq $i1 $n`; do
+      jr=`echoe "$rows" | sed -n ${j}','${j}'p'`
+      newj=`echoe "$ir\n$jr" | eliminate $i 0`
+      rows=$(updaterow $j $newj)
+      debug "$i $j eliminate $i 0"
+    done
+  fi
+done 
+
+for i in `seq $n -1 1`; do
+  i1=`expr $i - 1`
+  if [ $i1 -gt 0 ]; then
+    for j in `seq $i1 -1 1`; do
+      ir=`echoe "$rows" | sed -n ${i}','${i}'p'`
+      jr=`echoe "$rows" | sed -n ${j}','${j}'p'`
+      newj=`echoe "$ir\n$jr" | eliminate $i 0`
+      rows=$(updaterow $j $newj)
+      debug "$i $j eliminate $i 0"
+    done
+  fi
+done
+
+
+for i in `seq 1 $n`; do
+  ir=`echoe "$rows" | sed -n ${i}','${i}'p'`
+  newi=`echoe "$ir\n$ir" | eliminate $i 1`
+  rows=$(updaterow $i $newi)
+  debug "eliminate $i 1"
+done
+
+echoe "$rows" | cut -d' ' -f $n1-

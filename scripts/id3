@@ -1,0 +1,76 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${id3TRACE}" == "yes" ]; then
+  set -x
+fi
+SHEBANG=${SHEBANG:-/bin/bash}
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+
+function getheader {
+  echoe "$(echoe $header | awk '{print $'$1'}')"
+}
+
+fullrows=$(getinput)
+header=`echoe "$fullrows" | head -n 1`
+rows=`echoe "$fullrows" | tail -n +2`
+n=`echoe "$rows" | wc -l | sed 's/ //'g`
+cols=`echoe "$rows" | head -n 1 | tr ' ' '\n' | wc -l | sed 's/ //g'`
+
+LEVEL=${1:-0}
+MAXLEVEL=${MAXLEVEL:-10}
+if [ ${LEVEL} -eq 0 ]; then
+  TREEROOT=`echoe "$rows" | maxgain | awk '{print $1}'`
+  TREECOL=$(getheader $TREEROOT)
+else
+  TREEROOT=$2
+fi
+
+if [ $LEVEL -eq 0 ]; then
+  echoe "#! ${SHEBANG}"
+fi
+
+UNIQUES=`echoe "$rows" | awk '{print $'$TREEROOT'}' | sort | uniq | awk '{print $1}' | tr '\n' ' '`
+IF="if"
+for UNIQUE in $UNIQUES; do
+  DECISIONS=`echoe "$rows" | grep "${UNIQUE}" | awk '{print $'$cols'}' | sort | uniq | wc -l`
+  if [ $DECISIONS -gt 1 ]; then
+    TOTHEADERS=`echoe "$header" | tr ' ' '\n' | wc -l | sed 's/ //g'`
+    MAXCOL=`echoe "$rows" | grep "${UNIQUE}" | maxgain ${TREEROOT}`
+    for i in `seq 0 $LEVEL`; do
+      printf "  "
+    done
+    if [ $LEVEL -lt $MAXLEVEL ] && [ $TOTHEADERS -gt 2 ]; then
+      MAXCOLNAME=$(getheader $MAXCOL)
+      echoe "$IF [ \"\$$TREECOL\" == \"$UNIQUE\" ]; then"
+      if [ $MAXCOL -gt $TREEROOT ]; then
+         MAXCOL=$(expr $MAXCOL - 1)
+      fi
+      echoe "$fullrows" | grep -E "${MAXCOLNAME}|${UNIQUE}" | awk '{$'$TREEROOT'="";print $0}' | sed 's/  / /' | TREECOL=$MAXCOLNAME id3 $(expr $LEVEL + 1) $MAXCOL
+    else
+      DECISION=`echoe "$fullrows" | grep ${UNIQUE} | awk '{print $'$cols'}' | sort | uniq -c | sort -n -r | awk {'print $2'} | head -n 1`
+      echo "$IF [ \"\$${TREECOL}\" == \"$UNIQUE\" ]; then result=\"$DECISION\""
+    fi
+  else
+    DECISION=`echoe "$rows" | grep "${UNIQUE}" | awk '{print $'$cols'}' | sort | uniq | awk '{print $1}'`
+    for i in `seq 0 $LEVEL`; do
+      printf "  "
+    done
+    echo "$IF [ \"\$${TREECOL}\" == \"$UNIQUE\" ]; then result=\"$DECISION\""
+  fi
+  IF="elif"
+done
+for i in `seq 0 $LEVEL`; do
+  printf "  "
+done
+echo "fi"
+if [ $LEVEL -eq 0 ]; then
+  echoe "echo \"\$result\""
+fi

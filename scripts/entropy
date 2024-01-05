@@ -1,0 +1,23 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${entropyTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+rows=$(getinput)
+n=`echoe "$rows" | wc -l | sed 's/ //'g`
+COUNTS=`echoe "$rows" | sort | uniq -c | awk '{print $1}'`
+SUM=0
+for COUNT in $COUNTS; do
+ EXPR="scale=${BC_PRECISION};$SUM-$COUNT/$n*l($COUNT/$n)/l(2)"
+ SUM=`echo "$EXPR" | bcg -l`
+done
+printf "$SUM"

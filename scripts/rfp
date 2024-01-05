@@ -1,0 +1,47 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${rfTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+
+function getheader {
+  echoe "$(echoe $header | awk '{print $'$1'}')"
+}
+
+fullrows=$(getinput)
+header=`echoe "$fullrows" | head -n 1`
+rows=`echoe "$fullrows" | tail -n +2`
+n=`echoe "$rows" | wc -l | sed 's/ //'g`
+cols=`echoe "$rows" | head -n 1 | tr ' ' '\n' | wc -l | sed 's/ //g'`
+
+TREE_PREFIX=${1:-tree}
+
+echo "$header PREDICTION"
+for l in `seq 1 $n`; do
+  CMD=""
+  SEP=""
+  row=`echoe "$rows" | sed -n $l'p'`
+  for h in `seq 1 $cols`; do
+    head=$(getheader $h)    
+    CMD="$CMD$SEP$head=$(echo $row | awk '{print $'$h'}')"
+    SEP=" "
+  done
+  PREDICTIONS=""
+  SEP=""
+  for treefile in `ls ${TREE_PREFIX}.*`; do
+    PREDICTION=`sh -c "$CMD ./$treefile"`
+    PREDICTIONS="${SEP}${PREDICTION}"
+    SEP="\n"
+  done
+  PREDICTION=`echoe "$PREDICTIONS" | sort | uniq -c | sort -n -r | awk {'print $2'}`
+  echoe "$row $PREDICTION"
+done

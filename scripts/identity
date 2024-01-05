@@ -1,0 +1,15 @@
+#! /bin/bash
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+rows=$(getinput)
+n=`echoe "$rows" | wc -l`
+
+for i in `seq $n`;do 
+ row=`printf '%*s\n' $n | tr ' ' '0'| sed "s/0/1 /$i" | sed 's/0/0 /g' | sed 's/ $//'`
+ r=`echoe "$rows" | sed -n ${i}','${i}'p'`
+ echoe "$r $row"
+done

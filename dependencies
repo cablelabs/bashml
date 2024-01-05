@@ -1,0 +1,16 @@
+awk
+echo
+sed
+wc
+tr
+head
+tail
+sort
+uniq
+grep
+printf
+cat
+chmod
+seq
+dirname
+pwd

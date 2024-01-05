@@ -1,0 +1,11 @@
+#! /bin/bash
+DIR=`dirname $0`
+MISSING=""
+for line in `cat ${DIR}/../dependencies`; do
+  which $line || MISSING="$MISSING $line"
+done
+if [ "X${MISSING}" == "X" ]; then
+  echo "All dependencies available"
+else
+  echo "Missing dependencies $MISSING"
+fi

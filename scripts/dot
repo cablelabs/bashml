@@ -1,0 +1,27 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${dotTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+rows=$(getinput)
+v1=`echoe "$rows" | sed -n 1,1p`
+v2=`echoe "$rows" | sed -n 2,2p`
+n=`echo $v1 | tr ' ' '\n' | wc -l`
+SUM=0
+for i in `seq 1 $n`; do
+  val1=`echo $v1 | awk '{print $'$i'}'` 
+  val2=`echo $v2 | awk '{print $'$i'}'` 
+  SUM=`echo "scale=${BC_PRECISION};${SUM}+(${val1})*(${val2})" | bcg`
+done
+echo "$SUM"
+
+

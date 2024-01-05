@@ -1,0 +1,29 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${transposeTRACE}" == "yes" ]; then
+  set -x
+fi
+PATH=${DIR}:$PATH
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+m=$(getinput)
+c1=`echoe "$m" | head -n 1`
+nrows=`echoe "$m" | wc -l`
+ncols=`echoe "$c1" | tr ' ' '\n' | wc -l`
+for c in `seq 1 $ncols`; do
+  VALS=""
+  SEP=""
+  for r in `seq 1 $nrows`; do
+    VAL=`echoe "$m" | sed -n $r','$r'p' | awk '{print $'$c'}'`
+    VALS="$VALS$SEP$VAL"
+    SEP=" "
+  done
+  echoe "$VALS"
+done
+

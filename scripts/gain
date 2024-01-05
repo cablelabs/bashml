@@ -1,0 +1,26 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${gainTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+rows=$(getinput)
+n=`echoe "$rows" | wc -l | sed 's/ //'g`
+UNIQUES=`echoe "$rows" | awk '{print $1}' | sort | uniq -c | awk '{print $1"_"$2}'`
+SUM=`echoe "$rows" | awk '{print $2}' | entropy`
+for UNIQUE in $UNIQUES; do
+ VAL=`echoe "$UNIQUE" | sed 's/.*_//'`
+ COUNT=`echoe "$UNIQUE" | sed 's/_.*//'`
+ ENTROPY=`echoe "$rows" | grep -e "^${VAL}" | entropy`
+ EXPR="scale=${BC_PRECISION};$SUM-$COUNT/$n*($ENTROPY)"
+ SUM=`echo "$EXPR" | bcg`
+done
+printf "$SUM"

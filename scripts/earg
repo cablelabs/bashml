@@ -1,0 +1,2 @@
+#! /bin/bash
+echoe "$1" | arg

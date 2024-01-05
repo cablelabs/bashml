@@ -1,0 +1,17 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${mlrTRACE}" == "yes" ]; then
+  set -x
+fi
+beta=$1
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+X=$(getinput)
+betaArg=`cat $beta | arg`
+echoe "$X" | mult $betaArg 

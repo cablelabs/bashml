@@ -1,0 +1,23 @@
+#! /bin/bash
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+infile=$(getinput)
+argfile=`cat $1`
+rows=`echoe "$infile" | wc -l | awk '{print $1}'` 
+DIFF=0
+for r in `seq 1 $rows`; do
+  line=`echoe "$infile" | sed -n $r'p'`
+  argline=`echoe "$argfile" | sed -n $r'p'`
+  if [ "$line" != "$argline" ]; then
+    echo "Error File differ:"
+    echo "$line"
+    echo ">>>$argline"
+    DIFF=1
+    break
+  fi 
+done
+exit ${DIFF}

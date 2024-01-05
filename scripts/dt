@@ -1,0 +1,39 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${dtTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+
+function getheader {
+  echoe "$(echoe $header | awk '{print $'$1'}')"
+}
+
+fullrows=$(getinput)
+header=`echoe "$fullrows" | head -n 1`
+rows=`echoe "$fullrows" | tail -n +2`
+n=`echoe "$rows" | wc -l | sed 's/ //'g`
+cols=`echoe "$rows" | head -n 1 | tr ' ' '\n' | wc -l | sed 's/ //g'`
+
+treefile=$1
+echo "$header PREDICTION"
+for l in `seq 1 $n`; do
+  CMD=""
+  SEP=""
+  row=`echoe "$rows" | sed -n $l'p'`
+  for h in `seq 1 $cols`; do
+    head=$(getheader $h)    
+    CMD="$CMD$SEP$head=$(echo $row | awk '{print $'$h'}')"
+    SEP=" "
+  done
+  PREDICTION=`sh -c "$CMD $treefile"`
+  echoe "$row $PREDICTION"
+done

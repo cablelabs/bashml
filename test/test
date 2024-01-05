@@ -1,0 +1,52 @@
+#! /bin/bash
+DIR=`dirname $0`
+DATADIR="${DIR}/../data"
+PATH=${DIR}/../bin:$PATH
+echoe "3 3.5\n3.2 3.6" | bashml ols 1,2 > betatest
+MLR=`echoe "1 5" | bashml mlr betatest`
+MLRRESULT=`echoe "scale=0;${MLR}/1.2" | bashml bcg`
+echoe "$MLRRESULT" | tee test.log
+QLRESULT=`bashml ql 3 3 | bashml ql 2 3 0.234 2 0.1 0.1 | bashml ql 3`
+echoe "$QLRESULT" | tee -a test.log
+cat ${DATADIR}/decision.dat | MAXLEVEL=5 bashml id3 > decision_tree_test.sh
+chmod u+x decision_tree_test.sh
+Outlook=Rain Wind=Strong ./decision_tree_test.sh | tee -a test.log
+cat ${DATADIR}/student_predict.dat | bashml dt ${DATADIR}/student_scores_example_tree.sh | tee -a test.log
+head -n 20 ${DATADIR}/student_scores.dat | TREES=2 DETERMINISTIC=yes bashml rf testtree
+RFRESULT=`cat ${DATADIR}/student_predict.dat | PREDICT="yes" bashml rf testtree | head -n 2 | tail -n 1 | awk {'print $6'}`
+if [ $RFRESULT -eq 6 ]; then
+  echoe "RF OK" | tee -a test.log
+fi
+if [ $RFRESULT -eq 5 ]; then
+  echoe "RF OK" | tee -a test.log
+fi
+PARAMS=`cat ${DATADIR}/logreg_example.dat | ITERATIONS=2 bashml lr 1 0 1 0`
+VALS=`cat ${DATADIR}/logreg_test.dat | PREDICT="yes" bashml lr ${PARAMS}`
+VAL1=`echoe "$VALS" | awk {'print $1'}` 
+VAL2=`echoe "$VALS" | awk {'print $2'}`
+LRRES1=`echoe "scale=0;${VAL1}/.5" | bashml bcg`
+echoe "$LRRES1" | tee -a test.log 
+LRRES2=`echoe "scale=0;${VAL2}/.33" | bashml bcg`
+echoe "$LRRES2" | tee -a test.log 
+SUCCESS=0
+DIFF=0
+which diff && DIFF=1
+if [ $DIFF -eq 1 ]; then
+  diff test.log ${DIR}/test.expected && SUCCESS=1
+else
+  cat test.log | bashml diffg ${DIR}/test.expected && SUCCESS=1
+fi
+
+
+if [ $SUCCESS -eq 1 ]; then
+  echo "Test Success"
+  rm test.log
+  rm betatest
+  rm testtree.*
+  rm decision_tree_test.sh
+  RESULT=0
+else
+  echo "Test Failed"
+  RESULT=1
+fi
+exit ${RESULT}

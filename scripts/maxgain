@@ -1,0 +1,35 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${maxgainTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+rows=$(getinput)
+n=`echoe "$rows" | wc -l | sed 's/ //'g`
+cols=`echoe "$rows" | head -n 1 | tr ' ' '\n' | wc -l | sed 's/ //g'`
+cols=`expr $cols`
+IGNORECOL=${1:-0}
+
+MAXCOL=1
+MAXGAIN=0
+for c in `seq 1 $(expr $cols - 1)`; do
+  if [ $c -eq $IGNORECOL ]; then
+    continue
+  fi
+  GAIN=`echoe "$rows" | awk '{print $'$c'" "$'$cols'}' | gain`
+  B=`echo "scale=${BC_PRECISION};$GAIN > $MAXGAIN" | bcg`
+  if [ $B -eq 1 ]; then
+    MAXCOL=$c
+    MAXGAIN=$GAIN
+  fi
+done
+printf "$MAXCOL"
+

@@ -1,0 +1,8 @@
+#! /bin/bash
+SEP=""
+printf -- >/dev/null 2>/dev/null || NEG_ESCAPE="--"
+while read line
+do
+    printf ${NEG_ESCAPE} "$SEP$line"
+    SEP=","
+done

@@ -1,0 +1,42 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${rfTRACE}" == "yes" ]; then
+  set -x
+fi
+BC_PRECISION=${BC_PRECISION:-10}
+function getinput {
+  while read line
+  do
+    echoe "$line"
+  done
+}
+
+function getheader {
+  echoe "$(echoe $header | awk '{print $'$1'}')"
+}
+
+fullrows=$(getinput)
+header=`echoe "$fullrows" | head -n 1`
+rows=`echoe "$fullrows" | tail -n +2`
+n=`echoe "$rows" | wc -l | sed 's/ //'g`
+cols=`echoe "$rows" | head -n 1 | tr ' ' '\n' | wc -l | sed 's/ //g'`
+
+TREES=${TREES:-3}
+TREE_COLUMNS=${TREE_COLUMNS:-3}
+TREE_PREFIX=${1:-tree}
+
+for i in `seq 1 $TREES`; do
+ COLS=`seq 1 $(expr $cols - 1) | shufg | head -n ${TREE_COLUMNS} | tr '\n' ' ' | sed 's/ $//'`
+ AWK_CMD=""
+ SEP=""
+ COLS="$COLS $cols"
+ for c in $COLS; do
+   AWK_CMD="${AWK_CMD}${SEP}$"$c
+   SEP="\" \""
+ done
+ AWK_CMD="{print ${AWK_CMD}}"
+ echoe "$fullrows" | awk "${AWK_CMD}" | id3 > ${TREE_PREFIX}.${i} 
+ chmod u+x ${TREE_PREFIX}.${i} 
+done

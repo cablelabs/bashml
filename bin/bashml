@@ -1,0 +1,6 @@
+#! /bin/bash
+DIR=`dirname $0`
+PATH=${DIR}/../scripts:$PATH
+CMD=${1:-help}
+shift
+${DIR}/../scripts/${CMD} $*

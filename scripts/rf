@@ -1,0 +1,6 @@
+#! /bin/bash
+if [ "$PREDICT" != "yes" ]; then
+  TREES=${TREES} TREE_COLUMNS=${TREE_COLUMNS} rft $*
+else
+  rfp $*
+fi

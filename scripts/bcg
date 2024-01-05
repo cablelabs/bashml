@@ -1,0 +1,31 @@
+#! /bin/bash
+if [ "$TRACE" == "yes" ]; then
+  set -x
+fi
+if [ "${bcgTRACE}" == "yes" ]; then
+  set -x
+fi
+read CMD
+if test -f "/usr/bin/bc"; then
+    echo "$CMD" | bc $*
+else
+  SCALE=`echoe "$CMD" | sed 's/scale=//' | sed 's/;.*//'`
+  C=`echoe "$CMD" | sed 's/.*;//'`
+  C=`echoe "$C" | sed 's/l/log/g'`
+  C=`echoe "$C" | sed 's/e(/exp(/g'`
+  C=`echoe "$C" | sed 's/ //g'`
+  FIRST=`echo "$C" | cut -c1-1`
+  if [ "$FIRST" == "-" ]; then
+    C="0$C"
+  fi
+  C=`echoe "$C" | sed 's/+-/+0-/g'`
+  C=`echoe "$C" | sed 's/(-/(0-/g'`
+  BOOL=0
+  echoe "$C" | grep -qe "[>|<|==]" && BOOL=1
+  if [ $BOOL -eq 1 ]; then
+    awk 'BEGIN {printf ('$C')}'
+  else
+    awk 'BEGIN {printf "%.'$SCALE'f", '$C'}'
+  fi
+fi
+
